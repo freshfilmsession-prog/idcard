@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yusen Logistics — ID Card Studio</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  /* Yusen brand */
+  --y-navy: #0B1D35;
+  --y-orange: #F4622A;
+  --y-sky: #1E9BD7;
+  --y-slate: #4A6080;
+
+  /* Category themes */
+  --staff-bg: #0B1D35;
+  --staff-accent: #F4622A;
+  --staff-stripe: #F4622A;
+  --staff-stripe-text: #ffffff;
+
+  --ctc-bg: #7C2D12;
+  --ctc-accent: #FB923C;
+  --ctc-stripe: #FB923C;
+  --ctc-stripe-text: #ffffff;
+
+  --nwt-bg: #0C3D5F;
+  --nwt-accent: #1E9BD7;
+  --nwt-stripe: #1E9BD7;
+  --nwt-stripe-text: #ffffff;
+
+  --vis-bg: #1A1A2E;
+  --vis-accent: #A78BFA;
+  --vis-stripe: #A78BFA;
+  --vis-stripe-text: #ffffff;
+
+  /* UI */
+  --ui-bg: #0D1117;
+  --ui-surface: #161B22;
+  --ui-surface2: #21262D;
+  --ui-border: #30363D;
+  --ui-text: #E6EDF3;
+  --ui-muted: #8B949E;
+  --ui-accent: #F4622A;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND ── */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(244,98,42,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244,98,42,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.bg-glow {
+  position: fixed; z-index: 0; pointer-events: none;
+  border-radius: 50%; filter: blur(120px); opacity: 0.12;
+}
+.bg-glow-1 { width: 600px; height: 600px; background: #F4622A; top: -200px; right: -100px; }
+.bg-glow-2 { width: 400px; height: 400px; background: #1E9BD7; bottom: -100px; left: -100px; }
+
+/* ── HEADER ── */
+header {
+  position: relative; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--ui-border);
+  background: rgba(13,17,23,0.8);
+  backdrop-filter: blur(20px);
+}
+.header-brand {
+  display: flex; align-items: center; gap: 14px;
+}
+.header-logo {
+  width: 36px; height: 36px; background: var(--y-orange);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 14px; color: white; letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+.header-brand-name {
+  font-size: 15px; font-weight: 700; color: var(--ui-text); letter-spacing: -0.3px;
+}
+.header-brand-sub {
+  font-size: 11px; color: var(--ui-muted); font-weight: 400; margin-top: 1px;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.header-badge {
+  background: rgba(244,98,42,0.12); border: 1px solid rgba(244,98,42,0.3);
+  color: var(--y-orange); font-size: 11px; font-weight: 600;
+  padding: 5px 12px; border-radius: 20px; letter-spacing: 0.5px;
+}
+
+/* ── LAYOUT ── */
+.workspace {
+  position: relative; z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr 380px 1fr;
+  grid-template-areas: "preview-front panel preview-back";
+  gap: 32px;
+  padding: 40px;
+  max-width: 1400px; margin: 0 auto;
+  align-items: start;
+}
+
+/* ── PANEL ── */
+.panel {
+  grid-area: panel;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.panel-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--ui-border);
+}
+.panel-title {
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--ui-muted);
+  margin-bottom: 4px;
+}
+.panel-subtitle {
+  font-size: 18px; font-weight: 800; color: var(--ui-text); letter-spacing: -0.5px;
+}
+.panel-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+/* ── CATEGORY SELECTOR ── */
+.category-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.cat-btn {
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--ui-border);
+  background: var(--ui-surface2);
+  cursor: pointer; transition: all 0.15s;
+  display: flex; flex-direction: column; gap: 3px;
+  text-align: left;
+}
+.cat-btn:hover { border-color: var(--ui-muted); transform: translateY(-1px); }
+.cat-btn.active { background: rgba(244,98,42,0.1); border-color: var(--y-orange); }
+.cat-btn .cat-dot {
+  width: 10px; height: 10px; border-radius: 50%; margin-bottom: 4px;
+}
+.cat-btn .cat-name {
+  font-size: 12px; font-weight: 700; color: var(--ui-text); text-transform: uppercase; letter-spacing: 0.5px;
+}
+.cat-btn .cat-desc {
+  font-size: 10px; color: var(--ui-muted); font-weight: 400;
+}
+.cat-btn.active .cat-name { color: var(--y-orange); }
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px; background: var(--ui-border); margin: 0 -28px;
+}
+
+/* ── FORM FIELDS ── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--ui-muted);
+}
+.field input[type="text"] {
+  background: var(--ui-surface2); border: 1.5px solid var(--ui-border);
+  color: var(--ui-text); padding: 11px 14px; border-radius: 9px;
+  font-size: 14px; font-family: 'Inter', sans-serif; font-weight: 500;
+  transition: all 0.15s; width: 100%;
+}
+.field input[type="text"]::placeholder { color: #484F58; }
+.field input[type="text"]:focus {
+  outline: none; border-color: var(--y-orange);
+  box-shadow: 0 0 0 3px rgba(244,98,42,0.15);
+  background: #1A1F27;
+}
+
+/* ── PHOTO UPLOAD ── */
+.photo-upload-zone {
+  border: 1.5px dashed var(--ui-border); border-radius: 10px;
+  background: var(--ui-surface2);
+  padding: 20px; text-align: center; cursor: pointer;
+  transition: all 0.15s; position: relative; overflow: hidden;
+}
+.photo-upload-zone:hover { border-color: var(--y-orange); background: rgba(244,98,42,0.05); }
+.photo-upload-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon {
+  width: 40px; height: 40px; background: var(--ui-border);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 10px; font-size: 18px;
+}
+.upload-text { font-size: 13px; font-weight: 600; color: var(--ui-text); }
+.upload-hint { font-size: 11px; color: var(--ui-muted); margin-top: 3px; }
+.upload-filename {
+  font-size: 11px; color: var(--y-orange); margin-top: 6px; font-weight: 500;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── BUTTONS ── */
+.btn-update {
+  width: 100%; padding: 14px;
+  background: var(--y-orange); color: white;
+  border: none; border-radius: 10px; cursor: pointer;
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.btn-update:hover { background: #E0541F; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(244,98,42,0.3); }
+.btn-update:active { transform: translateY(0); }
+
+.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-secondary {
+  padding: 12px; border-radius: 9px; cursor: pointer;
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; transition: all 0.15s;
+  font-family: 'Inter', sans-serif; border: 1.5px solid;
+}
+.btn-pdf {
+  background: rgba(30,155,215,0.1); color: var(--y-sky);
+  border-color: rgba(30,155,215,0.3);
+}
+.btn-pdf:hover { background: rgba(30,155,215,0.2); border-color: var(--y-sky); }
+.btn-reset {
+  background: var(--ui-surface2); color: var(--ui-muted);
+  border-color: var(--ui-border);
+}
+.btn-reset:hover { border-color: #E5534B; color: #E5534B; }
+
+/* ── PREVIEW AREAS ── */
+.preview-area {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding-top: 16px;
+}
+.preview-area:first-child { grid-area: preview-front; }
+.preview-area:last-child { grid-area: preview-back; }
+
+.preview-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--ui-muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.preview-label::before, .preview-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--ui-border); width: 40px;
+}
+
+/* ── ID CARD — VERTICAL CR80 portrait: 53.98 × 85.6 mm @ ~3px/mm ── */
+.card {
+  width: 162px;   /* 53.98 mm × 3 */
+  height: 257px;  /* 85.6  mm × 3 */
+  border-radius: 10px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex-shrink: 0;
+}
+.card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 40px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.12);
+}
+
+/* ── CARD FRONT — vertical layout ── */
+.card-front-layout {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* Top accent bar */
+.card-bar {
+  width: 100%; height: 5px; flex-shrink: 0;
+  background: var(--theme-accent);
+}
+
+/* Header row */
+.card-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 11px 0;
+}
+.card-org {
+  font-size: 6px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  opacity: 0.55; color: white;
+}
+.card-type-pill {
+  display: inline-flex; align-items: center;
+  background: var(--theme-accent);
+  color: white; font-size: 5px; font-weight: 800; letter-spacing: 0.8px;
+  text-transform: uppercase; padding: 2px 5px; border-radius: 3px;
+}
+
+/* Photo — large, centered */
+.card-photo-wrap {
+  display: flex; justify-content: center; padding: 10px 0 6px;
+  flex: 1;
+}
+.card-photo {
+  width: 110px; height: 110px; border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  flex-shrink: 0; align-self: center;
+}
+.card-photo img { width: 100%; height: 100%; object-fit: cover; }
+.card-initials {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 32px; font-weight: 800; color: rgba(255,255,255,0.25);
+}
+
+/* Name block */
+.card-info {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 12px 6px; text-align: center; gap: 3px;
+}
+.card-name {
+  font-size: 11.5px; font-weight: 900; color: white;
+  letter-spacing: -0.3px; line-height: 1.15;
+  text-transform: uppercase;
+  overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.card-dept {
+  font-size: 6.5px; font-weight: 500; color: rgba(255,255,255,0.55);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%;
+}
+
+/* ID row */
+.card-id-row {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 0 12px 8px;
+}
+.card-id-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px; font-weight: 700;
+  color: var(--theme-accent);
+  letter-spacing: 0.5px;
+}
+.card-id-line {
+  flex: 1; height: 1px; background: rgba(255,255,255,0.1);
+}
+
+/* Bottom stripe */
+.card-stripe {
+  background: var(--theme-accent);
+  padding: 7px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-stripe-text {
+  font-size: 6px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: white; opacity: 0.9;
+}
+.card-stripe-dots {
+  display: flex; gap: 3px;
+}
+.card-stripe-dots span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  display: block;
+}
+
+/* Watermark */
+.card-watermark {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden; opacity: 0.035;
+}
+.card-watermark svg { width: 100%; height: 100%; }
+
+/* ── CARD BACK ── */
+.card-back-layout {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 14px 12px 10px;
+  gap: 0;
+  background: inherit;
+}
+.card-back-top {
+  font-size: 6px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: rgba(255,255,255,0.45);
+  align-self: flex-start; margin-bottom: 12px;
+}
+.card-qr-wrapper {
+  background: white; padding: 8px; border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  width: 90px; height: 90px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.card-qr-wrapper canvas, .card-qr-wrapper img { width: 74px !important; height: 74px !important; }
+.card-back-auth {
+  font-size: 5.5px; font-weight: 800; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--theme-accent);
+  margin-top: 10px;
+}
+.card-back-divider {
+  width: 60%; height: 1px; background: rgba(255,255,255,0.1); margin: 10px 0;
+}
+.card-back-footer {
+  font-size: 5px; color: rgba(255,255,255,0.28); text-align: center; line-height: 1.7;
+  padding: 0 4px;
+}
+.card-back-logo {
+  margin-top: auto;
+  background: var(--theme-accent);
+  align-self: stretch;
+  padding: 6px 12px;
+  font-size: 7px; font-weight: 900; color: white;
+  letter-spacing: 0.5px; text-align: center;
+}
+
+/* ── THEMES ── */
+.theme-staff  { --theme-accent: #F4622A; background: linear-gradient(145deg, #0B1D35 0%, #162A4A 100%); color: white; }
+.theme-ctc    { --theme-accent: #FB923C; background: linear-gradient(145deg, #7C2D12 0%, #9A3412 100%); color: white; }
+.theme-nwt    { --theme-accent: #38BDF8; background: linear-gradient(145deg, #0C3D5F 0%, #0E4F7A 100%); color: white; }
+.theme-visitas{ --theme-accent: #A78BFA; background: linear-gradient(145deg, #1A1A2E 0%, #16213E 100%); color: white; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--ui-surface); border: 1px solid var(--ui-border);
+  border-radius: 16px; padding: 28px; width: 90%; max-width: 480px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+}
+.modal-header h3 { font-size: 16px; font-weight: 700; }
+.modal-close {
+  background: var(--ui-surface2); border: 1px solid var(--ui-border);
+  color: var(--ui-muted); width: 32px; height: 32px; border-radius: 8px;
+  cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.modal-close:hover { border-color: #E5534B; color: #E5534B; }
+.crop-wrapper {
+  width: 100%; height: 320px; background: #000; border-radius: 10px;
+  overflow: hidden; margin-bottom: 16px;
+}
+.cropper-view-box, .cropper-face { border-radius: 50%; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-cancel {
+  padding: 10px 18px; border-radius: 8px;
+  border: 1.5px solid var(--ui-border); background: var(--ui-surface2);
+  color: var(--ui-muted); cursor: pointer; font-size: 13px; font-weight: 600;
+  font-family: 'Inter', sans-serif; transition: all 0.15s;
+}
+.btn-cancel:hover { border-color: var(--ui-muted); color: var(--ui-text); }
+.btn-apply {
+  padding: 10px 18px; border-radius: 8px;
+  border: none; background: var(--y-orange);
+  color: white; cursor: pointer; font-size: 13px; font-weight: 700;
+  font-family: 'Inter', sans-serif; transition: all 0.15s;
+}
+.btn-apply:hover { background: #E0541F; }
+
+/* ── PRINT AREA — exact CR80 at 96dpi×4 = 384dpi for sharp PDF ── */
+/* CR80: 53.98 mm × 85.6 mm  →  at 96dpi: 203.8 × 323.2 px  →  ×4 scale: render at 815 × 1293 px then downscale in jsPDF */
+#print-area {
+  position: absolute; left: -9999px; top: 0;
+  display: flex; gap: 40px;
+}
+#print-area .card {
+  /* Render at 2× for sharpness — html2canvas scale:2 will give us 4× effective */
+  width: 204px;
+  height: 324px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "panel"
+      "preview-front"
+      "preview-back";
+  }
+  .preview-area { flex-direction: row; gap: 20px; }
+  .panel { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <div class="header-logo">YL</div>
+    <div>
+      <div class="header-brand-name">Yusen Logistics</div>
+      <div class="header-brand-sub">ID Card Studio</div>
+    </div>
+  </div>
+  <div class="header-badge">ID-1 / CR80 Standard</div>
+</header>
+
+<!-- CROP MODAL -->
+<div class="modal-overlay" id="modalCrop">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Ajustar foto de perfil</h3>
+      <button class="modal-close" onclick="closeCropModal()">×</button>
+    </div>
+    <div class="crop-wrapper">
+      <img id="imageToCrop" src="" alt="Crop">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeCropModal()">Cancelar</button>
+      <button class="btn-apply" onclick="cropAndApply()">Aplicar recorte</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- PREVIEW FRONT -->
+  <div class="preview-area">
+    <div class="preview-label">Anverso</div>
+    <div class="card theme-staff" id="cardFrontLive">
+      <div class="card-front-layout">
+        <div class="card-bar"></div>
+        <div class="card-header-row">
+          <div class="card-org">Yusen Logistics</div>
+          <div class="card-type-pill" id="liveTypePill">YUSEN STAFF</div>
+        </div>
+        <div class="card-photo-wrap">
+          <div class="card-photo"><div class="card-initials" id="liveInitials">YL</div></div>
+        </div>
+        <div class="card-info">
+          <div class="card-name" id="liveName">NOMBRE APELLIDO</div>
+          <div class="card-dept" id="liveDept">DEPARTMENT / POSITION</div>
+        </div>
+        <div class="card-id-row">
+          <div class="card-id-line"></div>
+          <div class="card-id-mono" id="liveId">ID: 00000000</div>
+          <div class="card-id-line"></div>
+        </div>
+        <div class="card-stripe">
+          <div class="card-stripe-text">Yusen Logistics</div>
+          <div class="card-stripe-dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="card-watermark">
+          <svg viewBox="0 0 162 257" xmlns="http://www.w3.org/2000/svg">
+            <line x1="0" y1="-20" x2="162" y2="180" stroke="white" stroke-width="20"/>
+            <line x1="0" y1="60" x2="162" y2="260" stroke="white" stroke-width="20"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROL PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Editor de Tarjeta</div>
+      <div class="panel-subtitle">Configurar ID</div>
+    </div>
+    <div class="panel-body">
+
+      <!-- Category -->
+      <div class="field">
+        <label>Categoría de Acceso</label>
+        <div class="category-grid">
+          <button class="cat-btn active" data-type="staff" onclick="selectCategory(this)">
+            <div class="cat-dot" style="background:#F4622A"></div>
+            <div class="cat-name">Yusen Staff</div>
+            <div class="cat-desc">Empleados directos</div>
+          </button>
+          <button class="cat-btn" data-type="ctc" onclick="selectCategory(this)">
+            <div class="cat-dot" style="background:#FB923C"></div>
+            <div class="cat-name">Ext.</div>
+            <div class="cat-desc">Contratistas</div>
+          </button>
+          <button class="cat-btn" data-type="nwt" onclick="selectCategory(this)">
+            <div class="cat-dot" style="background:#38BDF8"></div>
+            <div class="cat-name">NWT</div>
+            <div class="cat-desc">Network / Red</div>
+          </button>
+          <button class="cat-btn" data-type="visitas" onclick="selectCategory(this)">
+            <div class="cat-dot" style="background:#A78BFA"></div>
+            <div class="cat-name">Visitante</div>
+            <div class="cat-desc">Acceso temporal</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label>Nombre Completo</label>
+        <input type="text" id="inName" placeholder="Jean Dupont" maxlength="24">
+      </div>
+
+      <div class="field">
+        <label>Departamento / Cargo</label>
+        <input type="text" id="inDept" placeholder="Logistics Manager">
+      </div>
+
+      <div class="field">
+        <label>Número de Empleado</label>
+        <input type="text" id="inNum" placeholder="FR-2024-001">
+      </div>
+
+      <div class="field">
+        <label>Foto de Perfil</label>
+        <div class="photo-upload-zone" id="uploadZone">
+          <input type="file" id="inFile" accept="image/*">
+          <div class="upload-icon">📷</div>
+          <div class="upload-text">Seleccionar imagen</div>
+          <div class="upload-hint">JPG, PNG · Recorte circular automático</div>
+          <div class="upload-filename" id="fileLabel"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn-update" onclick="updateAll()">Actualizar tarjeta</button>
+
+      <div class="btn-row">
+        <button class="btn-secondary btn-pdf" onclick="downloadPDF()">⬇ Exportar PDF</button>
+        <button class="btn-secondary btn-reset" onclick="resetForm()">↺ Reiniciar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PREVIEW BACK -->
+  <div class="preview-area">
+    <div class="preview-label">Reverso</div>
+    <div class="card theme-staff" id="cardBackLive">
+      <div class="card-back-layout">
+        <div class="card-back-top">Yusen Logistics · Security</div>
+        <div class="card-qr-wrapper">
+          <div id="qrcode-live"></div>
+        </div>
+        <div class="card-back-auth" id="liveAuth">AUTORIZADO / AUTHORIZED</div>
+        <div class="card-back-divider"></div>
+        <div class="card-back-footer">
+          This card is property of Yusen Logistics.<br>
+          If found, please return to any Yusen office immediately.
+        </div>
+        <div class="card-back-logo">YUSEN LOGISTICS</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- HIDDEN PRINT AREA -->
+<div id="print-area">
+  <div class="card theme-staff" id="cardFront">
+    <div class="card-front-layout">
+      <div class="card-bar"></div>
+      <div class="card-header-row">
+        <div class="card-org">Yusen Logistics</div>
+        <div class="card-type-pill" id="printTypePill">YUSEN STAFF</div>
+      </div>
+      <div class="card-photo-wrap">
+        <div class="card-photo">
+          <img id="viewImg" src="" alt="Photo" style="display:none">
+          <div class="card-initials" id="printInitials">YL</div>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-name" id="printName">NOMBRE APELLIDO</div>
+        <div class="card-dept" id="printDept">DEPARTMENT</div>
+      </div>
+      <div class="card-id-row">
+        <div class="card-id-line"></div>
+        <div class="card-id-mono" id="printId">ID: 00000000</div>
+        <div class="card-id-line"></div>
+      </div>
+      <div class="card-stripe">
+        <div class="card-stripe-text">Yusen Logistics</div>
+        <div class="card-stripe-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-watermark">
+        <svg viewBox="0 0 162 257" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="-20" x2="162" y2="180" stroke="white" stroke-width="20"/>
+          <line x1="0" y1="60" x2="162" y2="260" stroke="white" stroke-width="20"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="card theme-staff" id="cardBack">
+    <div class="card-back-layout">
+      <div class="card-back-top">Yusen Logistics · Security</div>
+      <div class="card-qr-wrapper">
+        <div id="qrcode-print"></div>
+      </div>
+      <div class="card-back-auth">AUTORIZADO / AUTHORIZED</div>
+      <div class="card-back-divider"></div>
+      <div class="card-back-footer">
+        This card is property of Yusen Logistics.<br>
+        If found, please return to any Yusen office immediately.
+      </div>
+      <div class="card-back-logo">YUSEN LOGISTICS</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let cropper = null;
+let croppedImageDataURL = null;
+let currentType = 'staff';
+
+const typeLabels = {
+  staff: 'YUSEN STAFF',
+  ctc: 'PERSONAL EXTERNO',
+  nwt: 'NWT NETWORK',
+  visitas: 'VISITANTE'
+};
+
+// ── INIT ──
+const qrLive  = new QRCode(document.getElementById('qrcode-live'),  { width: 64, height: 64, colorDark: '#0B1D35', correctLevel: QRCode.CorrectLevel.H });
+const qrPrint = new QRCode(document.getElementById('qrcode-print'), { width: 64, height: 64, colorDark: '#0B1D35', correctLevel: QRCode.CorrectLevel.H });
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Restore saved values
+  const saved = {
+    inName: localStorage.getItem('yl_name'),
+    inDept: localStorage.getItem('yl_dept'),
+    inNum:  localStorage.getItem('yl_num'),
+    type:   localStorage.getItem('yl_type')
+  };
+  if (saved.inName) document.getElementById('inName').value = saved.inName;
+  if (saved.inDept) document.getElementById('inDept').value = saved.inDept;
+  if (saved.inNum)  document.getElementById('inNum').value  = saved.inNum;
+  if (saved.type) {
+    currentType = saved.type;
+    document.querySelectorAll('.cat-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.type === currentType);
+    });
+  }
+  const img = localStorage.getItem('yl_img');
+  if (img) {
+    croppedImageDataURL = img;
+    document.getElementById('fileLabel').textContent = '✓ Foto cargada';
+  }
+
+  // Live update on keyup
+  ['inName','inDept','inNum'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateLive);
+  });
+
+  updateAll();
+});
+
+// ── CATEGORY SELECTION ──
+function selectCategory(btn) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentType = btn.dataset.type;
+  localStorage.setItem('yl_type', currentType);
+  updateAll();
+}
+
+// ── UPDATE LIVE PREVIEW ──
+function updateLive() {
+  const name = (document.getElementById('inName').value || 'NOMBRE APELLIDO').toUpperCase();
+  const dept = (document.getElementById('inDept').value || 'DEPARTMENT / POSITION').toUpperCase();
+  const idNum = document.getElementById('inNum').value || '00000000';
+  const initials = getInitials(name);
+
+  document.getElementById('liveName').textContent = name;
+  document.getElementById('liveDept').textContent = dept;
+  document.getElementById('liveId').textContent = 'ID: ' + idNum;
+  document.getElementById('liveTypePill').textContent = typeLabels[currentType];
+  document.getElementById('liveInitials').textContent = initials;
+
+  // Theme
+  document.getElementById('cardFrontLive').className = `card theme-${currentType}`;
+  document.getElementById('cardBackLive').className  = `card theme-${currentType}`;
+
+  // Photo — in the vertical card the photo is inside .card-photo-wrap > .card-photo
+  const livePhoto = document.getElementById('cardFrontLive').querySelector('.card-photo');
+  const existImg  = livePhoto.querySelector('img');
+  const existInit = livePhoto.querySelector('.card-initials');
+  if (croppedImageDataURL) {
+    if (existInit) existInit.style.display = 'none';
+    let img = existImg;
+    if (!img) {
+      img = document.createElement('img');
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      livePhoto.appendChild(img);
+    }
+    img.src = croppedImageDataURL;
+    img.style.display = 'block';
+  } else {
+    if (existImg) existImg.style.display = 'none';
+    if (existInit) { existInit.style.display = 'flex'; existInit.textContent = initials; }
+  }
+
+  // QR
+  const qrData = `YUSEN|${currentType.toUpperCase()}|${name}|${idNum}`;
+  try { qrLive.clear(); qrLive.makeCode(qrData); } catch(e) {}
+}
+
+function updateAll() {
+  updateLive();
+
+  // Sync print area
+  const name  = document.getElementById('liveName').textContent;
+  const dept  = document.getElementById('liveDept').textContent;
+  const idNum = document.getElementById('liveId').textContent;
+  const type  = currentType;
+
+  document.getElementById('printName').textContent     = name;
+  document.getElementById('printDept').textContent     = dept;
+  document.getElementById('printId').textContent       = idNum;
+  document.getElementById('printTypePill').textContent = typeLabels[type];
+  document.getElementById('printInitials').textContent = getInitials(name);
+
+  document.getElementById('cardFront').className = `card theme-${type}`;
+  document.getElementById('cardBack').className  = `card theme-${type}`;
+
+  const printImg = document.getElementById('viewImg');
+  const printInit = document.getElementById('printInitials');
+  if (croppedImageDataURL) {
+    printImg.src = croppedImageDataURL;
+    printImg.style.display = 'block';
+    printInit.style.display = 'none';
+  } else {
+    printImg.style.display = 'none';
+    printInit.style.display = 'flex';
+  }
+
+  const qrData = `YUSEN|${type.toUpperCase()}|${name}|${idNum}`;
+  try { qrPrint.clear(); qrPrint.makeCode(qrData); } catch(e) {}
+
+  // Save to localStorage
+  localStorage.setItem('yl_name', document.getElementById('inName').value);
+  localStorage.setItem('yl_dept', document.getElementById('inDept').value);
+  localStorage.setItem('yl_num',  document.getElementById('inNum').value);
+  if (croppedImageDataURL) localStorage.setItem('yl_img', croppedImageDataURL);
+}
+
+function getInitials(name) {
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length === 0) return 'YL';
+  if (parts.length === 1) return parts[0].slice(0,2);
+  return parts[0][0] + parts[parts.length-1][0];
+}
+
+// ── PHOTO UPLOAD ──
+document.getElementById('inFile').onchange = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('fileLabel').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('imageToCrop').src = ev.target.result;
+    document.getElementById('modalCrop').classList.add('open');
+    if (cropper) cropper.destroy();
+    cropper = new Cropper(document.getElementById('imageToCrop'), {
+      aspectRatio: 1, viewMode: 1, dragMode: 'move',
+      autoCropArea: 0.9, cropBoxMovable: false, cropBoxResizable: false,
+    });
+  };
+  reader.readAsDataURL(file);
+};
+
+function closeCropModal() {
+  document.getElementById('modalCrop').classList.remove('open');
+  if (cropper) { cropper.destroy(); cropper = null; }
+  document.getElementById('inFile').value = '';
+}
+
+function cropAndApply() {
+  if (!cropper) return;
+  const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 });
+  croppedImageDataURL = canvas.toDataURL('image/jpeg', 0.92);
+  document.getElementById('fileLabel').textContent = '✓ Foto aplicada';
+  updateAll();
+  closeCropModal();
+}
+
+// ── RESET ──
+function resetForm() {
+  if (!confirm('¿Borrar todos los datos y empezar de nuevo?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+// ── PDF EXPORT — captura las tarjetas visibles para preservar todos los estilos ──
+async function downloadPDF() {
+  updateAll();
+  await new Promise(r => setTimeout(r, 400));
+
+  const { jsPDF } = window.jspdf;
+  const empName = document.getElementById('inName').value || 'Export';
+
+  // CR80 exact dimensions in mm
+  const W = 53.98;
+  const H = 85.6;
+
+  // Capturar desde los previews visibles — tienen todos los estilos correctos
+  const elFront = document.getElementById('cardFrontLive');
+  const elBack  = document.getElementById('cardBackLive');
+
+  // Disable hover transform momentarily
+  elFront.style.transform = 'none';
+  elBack.style.transform  = 'none';
+
+  const capOpts = { scale: 6, useCORS: true, allowTaint: true, logging: false };
+
+  const [cFront, cBack] = await Promise.all([
+    html2canvas(elFront, capOpts),
+    html2canvas(elBack,  capOpts)
+  ]);
+
+  elFront.style.transform = '';
+  elBack.style.transform  = '';
+
+  const imgFront = cFront.toDataURL('image/png');
+  const imgBack  = cBack.toDataURL('image/png');
+
+  // PDF page: A4 landscape — tarjetas centradas, una por cara
+  // Mejor opción para imprimir: cada tarjeta en su propia página A4 → imprimir "tamaño real"
+  // La tarjeta se coloca centrada, así el usuario recorta las marcas de corte.
+  const A4w = 297, A4h = 210; // landscape
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+
+  function drawCard(img, x, y) {
+    // Rounded rect clip (jsPDF 2.x)
+    pdf.addImage(img, 'PNG', x, y, W, H);
+    // Cut marks — 4 esquinas
+    pdf.setDrawColor(150);
+    pdf.setLineWidth(0.2);
+    const m = 4; // mark length mm
+    const g = 1.5; // gap from card edge
+    // TL
+    pdf.line(x - g - m, y,         x - g,     y        );
+    pdf.line(x,         y - g - m, x,         y - g    );
+    // TR
+    pdf.line(x + W + g, y,         x + W + g + m, y    );
+    pdf.line(x + W,     y - g - m, x + W,     y - g    );
+    // BL
+    pdf.line(x - g - m, y + H,     x - g,     y + H    );
+    pdf.line(x,         y + H + g, x,         y + H + g + m);
+    // BR
+    pdf.line(x + W + g, y + H,     x + W + g + m, y + H);
+    pdf.line(x + W,     y + H + g, x + W,     y + H + g + m);
+  }
+
+  // Página 1: Anverso centrado
+  const cx = (A4w - W) / 2;
+  const cy = (A4h - H) / 2;
+  drawCard(imgFront, cx, cy);
+
+  // Página 2: Reverso rotado 180° para impresión doble cara correcta
+  pdf.addPage('a4', 'landscape');
+  pdf.setPage(2);
+  // Rotar el canvas del reverso 180° antes de insertar
+  const rotCanvas = document.createElement('canvas');
+  rotCanvas.width  = cBack.width;
+  rotCanvas.height = cBack.height;
+  const rctx = rotCanvas.getContext('2d');
+  rctx.translate(rotCanvas.width / 2, rotCanvas.height / 2);
+  rctx.rotate(Math.PI);
+  rctx.drawImage(cBack, -cBack.width / 2, -cBack.height / 2);
+  const imgBackRot = rotCanvas.toDataURL('image/png');
+  drawCard(imgBackRot, cx, cy);
+
+  pdf.save(`Yusen_ID_${empName.replace(/\s+/g,'_')}.pdf`);
+}
+</script>
+</body>
+</html>
